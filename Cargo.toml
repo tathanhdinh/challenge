@@ -1,0 +1,14 @@
+[package]
+name = "maze"
+version = "0.1.0"
+authors = ["Ta Thanh Dinh <tathanhdinh@gmail.com>"]
+
+[dependencies]
+nix = "*"
+# rand = "*"
+lazy_static = "*"
+petgraph = "*"
+
+[profile.release]
+lto = true
+panic = 'abort'
