@@ -10,25 +10,70 @@ use std::sync::*;
 use petgraph::graph::*;
 
 lazy_static! {
-  static ref RANDOM_SEED: Mutex<u32> = Mutex::new(unistd::getpid() as u32);
+  static ref RANDOM_SEED: Mutex<usize> = Mutex::new(unistd::getpid() as usize);
 }
 
-const WIDTH: u32 = 20;
-const HEIGHT: u32 = 7;
+const WIDTH: usize = 20;
+const HEIGHT: usize = 7;
 
-// xorshift algorithm
-fn next_random_number() -> u32 {
+// trait GenerateNextRandomNumber<T> {
+//   fn next_random_number() -> T;
+// }
+
+// impl GenerateNextRandomNumber<u32> for u32 {
+//   fn next_random_number() -> u32 {
+//     let mut current_seed = *RANDOM_SEED.lock().unwrap() as u32;
+//     current_seed ^= current_seed << 13;
+//     current_seed ^= current_seed >> 17;
+//     current_seed ^= current_seed << 5;
+//     *RANDOM_SEED.lock().unwrap() = current_seed as usize;
+//     current_seed
+//   }
+// }
+
+// impl GenerateNextRandomNumber<u64> for u64 {
+//   fn next_random_number() -> u64 {
+//     let mut current_seed = *RANDOM_SEED.lock().unwrap() as u64;
+//     current_seed ^= current_seed << 13;
+//     current_seed ^= current_seed >> 47;
+//     current_seed ^= current_seed << 23;
+//     *RANDOM_SEED.lock().unwrap() = current_seed as usize;
+//     current_seed
+//   }
+// }
+
+fn next_random_number() -> usize {
   let mut current_seed = *RANDOM_SEED.lock().unwrap();
-  current_seed ^= current_seed << 13;
-  current_seed ^= current_seed >> 17;
-  current_seed ^= current_seed << 5;
+  if std::mem::size_of::<u32>() == std::mem::size_of::<usize>() {
+    current_seed ^= current_seed << 13;
+    current_seed ^= current_seed >> 17;
+    current_seed ^= current_seed << 5;
+    *RANDOM_SEED.lock().unwrap() = current_seed as usize;
+  } else if std::mem::size_of::<u64>() == std::mem::size_of::<usize>() {
+    current_seed ^= current_seed << 13;
+    current_seed ^= current_seed >> 47;
+    current_seed ^= current_seed << 23;
+  } else {
+    unreachable!();
+  }
+
   *RANDOM_SEED.lock().unwrap() = current_seed;
   current_seed
 }
 
+// xorshift algorithm
+// fn next_random_number() -> u32 {
+//   let mut current_seed = *RANDOM_SEED.lock().unwrap();
+//   current_seed ^= current_seed << 13;
+//   current_seed ^= current_seed >> 17;
+//   current_seed ^= current_seed << 5;
+//   *RANDOM_SEED.lock().unwrap() = current_seed;
+//   current_seed as u32
+// }
+
 struct Cell {
-  x: u32,
-  y: u32,
+  x: usize,
+  y: usize,
 }
 
 enum Direction {
@@ -79,7 +124,7 @@ fn draw(maze: &DiGraph<Cell, Direction>) {
   for _y in 0..HEIGHT {
     let mut row_y_body = String::from("|");
     let mut row_y_lbound = String::from("+");
-    
+
     for _x in 0..WIDTH {
       row_y_body.push_str("  ");
 
@@ -99,8 +144,8 @@ fn draw(maze: &DiGraph<Cell, Direction>) {
         }
       } else {
         row_y_lbound.push_str("--");
-      }    
-      
+      }
+
       row_y_lbound.push('+');
     }
 
@@ -128,19 +173,27 @@ fn initialize_grid() -> DiGraph<Cell, Direction> {
       let (x_bound, y_bound) = (WIDTH - 1, HEIGHT - 1);
 
       if _x > 0 {
-        full_grid.add_edge(cell_indexes[_y][_x], cell_indexes[_y][_x - 1], Direction::West);  // to left cell
+        full_grid.add_edge(cell_indexes[_y][_x],
+                           cell_indexes[_y][_x - 1],
+                           Direction::West);  // to left cell
       }
 
       if _x < x_bound {
-        full_grid.add_edge(cell_indexes[_y][_x], cell_indexes[_y][_x + 1], Direction::Est);   // to right cell
+        full_grid.add_edge(cell_indexes[_y][_x],
+                           cell_indexes[_y][_x + 1],
+                           Direction::Est);   // to right cell
       }
 
       if _y > 0 {
-        full_grid.add_edge(cell_indexes[_y][_x], cell_indexes[_y - 1][_x], Direction::North); // to up cell
+        full_grid.add_edge(cell_indexes[_y][_x],
+                           cell_indexes[_y - 1][_x],
+                           Direction::North); // to up cell
       }
 
       if _y < y_bound {
-        full_grid.add_edge(cell_indexes[_y][_x], cell_indexes[_y + 1][_x], Direction::South); // to down cell
+        full_grid.add_edge(cell_indexes[_y][_x],
+                           cell_indexes[_y + 1][_x],
+                           Direction::South); // to down cell
       }
     }
   }
@@ -148,9 +201,110 @@ fn initialize_grid() -> DiGraph<Cell, Direction> {
   full_grid
 }
 
+// on the left
+fn western_cell(x: usize, y: usize,
+             cell_matrix: &[[NodeIndex; WIDTH]; HEIGHT]) -> Option<NodeIndex> {
+  if x > 0 {
+    Some(cell_matrix[y][x - 1])
+  } else {
+    None
+  }
+}
+
+// on the right
+fn eastern_cell(x: usize, y: usize,
+                cell_matrix: &[[NodeIndex; WIDTH]; HEIGHT]) -> Option<NodeIndex> {
+  if x < WIDTH - 1 {
+    Some(cell_matrix[y][x + 1])
+  } else {
+    None
+  }
+}
+
+// upper
+fn northern_cell(x: usize, y: usize,
+                 cell_matrix: &[[NodeIndex; WIDTH]; HEIGHT]) -> Option<NodeIndex> {
+  if y > 0 {
+    Some(cell_matrix[x][y - 1])
+  } else {
+    None
+  }
+}
+
+// lower
+fn southern_cell(x: usize, y: usize,
+                 cell_matrix: &[[NodeIndex; WIDTH]; HEIGHT]) -> Option<NodeIndex> {
+  if y < HEIGHT - 1 {
+    Some(cell_matrix[x][y + 1])
+  } else {
+    None
+  }
+}
+
 fn generate_maze(background_grid: &DiGraph<Cell, Direction>) -> DiGraph<Cell, Direction> {
   // full_grid
   let mut maze = petgraph::graph::DiGraph::<Cell, Direction>::new();
+  let mut maze_cell_indexes = [[NodeIndex::from(0u32); WIDTH]; HEIGHT];
+  for _y in 0..HEIGHT {
+    for _x in 0..WIDTH {
+      maze_cell_indexes[_y][_x] = maze.add_node(Cell { x: _x, y: _y });
+    }
+  }
+
+  let x_init = next_random_number() % WIDTH;
+  let y_init = next_random_number() % HEIGHT;
+  let (x_bound, y_bound) = (WIDTH - 1, HEIGHT - 1);
+  // let mut examining_edges: Vec<EdgeIndex> = Vec::new();
+  let mut examining_edges = Vec::new();
+
+  let current_cell_index = maze_cell_indexes[y_init][x_init];
+  // if x_init > 0 {
+  //   examining_edges.push(maze.add_edge(current_cell_index,
+  //                                      maze_cell_indexes[y_init][x_init - 1],
+  //                                      Direction::West)); // to the left cell
+  //   maze.add_edge(maze_cell_indexes[y_init][x_init - 1],
+  //                 current_cell_index,
+  //                 Direction::Est); // backward edge (don't need to add in the vector)
+  // }
+  match western_cell(x_init, y_init, &maze_cell_indexes) {
+    Some(cell_index) => {
+      examining_edges.push(maze.add_edge(current_cell_index, cell_index, Direction::West));
+      maze.add_edge(cell_index, current_cell_index, Direction::Est);
+    },
+    None => {},
+  }
+
+  match eastern_cell(x_init, y_init, &maze_cell_indexes) {
+    Some(cell_index) => {
+      examining_edges.push(maze.add_edge(current_cell_index, cell_index, Direction::Est));
+      maze.add_edge(cell_index, current_cell_index, Direction::West);
+    },
+    None => {},
+  }
+
+  if x_init < x_bound {
+    examining_edges.push(maze.add_edge(current_cell_index,
+                                       maze_cell_indexes[y_init][x_init + 1],
+                                       Direction::Est)); // to the right cell
+    maze.add_edge(maze_cell_indexes[y_init][x_init + 1],
+                  current_cell_index,
+                  Direction::West); // backward edge
+  }
+
+  if y_init > 0 {
+    examining_edges.push(maze.add_edge(current_cell_index,
+                                       maze_cell_indexes[y_init - 1][x_init],
+                                       Direction::North)); // to the upper cell
+    maze.add_edge(maze_cell_indexes[y_init - 1][x_init],
+                  current_cell_index, Direction::South); // backward edge
+  }
+
+  if y_init < y_bound {
+    examining_edges.push(maze.add_edge(current_cell_index,
+                                       maze_cell_indexes[y_init + 1][x_init],
+                                       Direction::South));
+  }
+
   maze
 }
 
@@ -165,6 +319,8 @@ fn main() {
   let maze = generate_maze(&full_grid);
   draw(&maze);
   // draw_maze(3, 4);
+  let ran = next_random_number();
+  // println!("seed = {}", next_random_number<u32>());
   // println!("seed = {}", next_random_number());
-  // println!("seed = {}", next_random_number());
+  println!("seed = {}", ran);
 }
