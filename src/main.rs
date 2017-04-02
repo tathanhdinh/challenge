@@ -73,8 +73,8 @@ fn next_random_number() -> usize {
 // }
 
 struct Cell {
-  x: usize,
-  y: usize,
+  pub x: usize,
+  pub y: usize,
 }
 
 #[derive(Copy, Clone)]
@@ -355,24 +355,32 @@ fn generate_maze(background_grid: &DiGraph<Cell, Direction>) -> DiGraph<Cell, Di
   // let init_bounded_walls = &mut bounded_walls(x_init, y_init, &maze_cell_indexes);
   examining_walls.append(&mut bounded_walls(x_init, y_init, &maze_cell_indexes));
 
-  let mut examined_cells = Vec::new();
-  examined_cells.push(init_cell_index);
+  let mut examined_cell_indexes = Vec::new();
+  examined_cell_indexes.push(init_cell_index);
 
   let mut examined_walls = Vec::new();
 
   while !examining_walls.is_empty() {
     let random_wall_index = next_random_number() % examining_walls.len();
-    let examining_wall = examining_walls.remove(random_wall_index);
-    let target_cell = examining_wall.target;
+    let examining_wall = examining_walls.remove(random_wall_index); // remove the wall from the examining set
+    let attached_cell_index = examining_wall.target;
 
     // examined_walls.push(examining_wall.clone());
 
-    if !examined_cells.contains(&target_cell) {
+    if !examined_cell_indexes.contains(&attached_cell_index) {
       maze.add_edge(examining_wall.source, examining_wall.target, examining_wall.direction[0]);
       maze.add_edge(examining_wall.target, examining_wall.source, examining_wall.direction[1]);
+
+      let attached_cell = maze.node_weight(attached_cell_index).unwrap();
+      let attached_cell_walls = bounded_walls(attached_cell.x, attached_cell.y, &maze_cell_indexes);
+      for wall in attached_cell_walls {
+        if !examined_cell_indexes.contains(&wall.target) {
+          examined_walls.push(wall);
+        }
+      }
     } 
 
-    examined_walls.push(examining_wall);
+    examined_walls.push(examining_wall); // add the wall into the examined set
   }
 
   // if x_init < x_bound {
