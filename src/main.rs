@@ -253,7 +253,7 @@ fn generate_maze(background_grid: &DiGraph<Cell, Direction>) -> DiGraph<Cell, Di
 
   let x_init = next_random_number() % WIDTH;
   let y_init = next_random_number() % HEIGHT;
-  let (x_bound, y_bound) = (WIDTH - 1, HEIGHT - 1);
+  // let (x_bound, y_bound) = (WIDTH - 1, HEIGHT - 1);
   // let mut examining_edges: Vec<EdgeIndex> = Vec::new();
   let mut examining_edges = Vec::new();
 
@@ -271,7 +271,7 @@ fn generate_maze(background_grid: &DiGraph<Cell, Direction>) -> DiGraph<Cell, Di
       examining_edges.push(maze.add_edge(current_cell_index, cell_index, Direction::West));
       maze.add_edge(cell_index, current_cell_index, Direction::Est);
     },
-    None => {},
+    None => (),
   }
 
   match eastern_cell(x_init, y_init, &maze_cell_indexes) {
@@ -279,31 +279,52 @@ fn generate_maze(background_grid: &DiGraph<Cell, Direction>) -> DiGraph<Cell, Di
       examining_edges.push(maze.add_edge(current_cell_index, cell_index, Direction::Est));
       maze.add_edge(cell_index, current_cell_index, Direction::West);
     },
-    None => {},
+    None => (),
   }
 
-  if x_init < x_bound {
-    examining_edges.push(maze.add_edge(current_cell_index,
-                                       maze_cell_indexes[y_init][x_init + 1],
-                                       Direction::Est)); // to the right cell
-    maze.add_edge(maze_cell_indexes[y_init][x_init + 1],
-                  current_cell_index,
-                  Direction::West); // backward edge
+  match northern_cell(x_init, y_init, &maze_cell_indexes) {
+    Some(cell_index) => {
+      examining_edges.push(maze.add_edge(current_cell_index, cell_index, Direction::North));
+      maze.add_edge(cell_index, current_cell_index, Direction::South);
+    },
+    None => (),
   }
 
-  if y_init > 0 {
-    examining_edges.push(maze.add_edge(current_cell_index,
-                                       maze_cell_indexes[y_init - 1][x_init],
-                                       Direction::North)); // to the upper cell
-    maze.add_edge(maze_cell_indexes[y_init - 1][x_init],
-                  current_cell_index, Direction::South); // backward edge
+  match southern_cell(x_init, y_init, &maze_cell_indexes) {
+    Some(cell_index) => {
+      examining_edges.push(maze.add_edge(current_cell_index, cell_index, Direction::South));
+      maze.add_edge(cell_index, current_cell_index, Direction::North);
+    },
+    None => (),
   }
 
-  if y_init < y_bound {
-    examining_edges.push(maze.add_edge(current_cell_index,
-                                       maze_cell_indexes[y_init + 1][x_init],
-                                       Direction::South));
+  while !examining_edges.is_empty() {
+    let examining_edge_num = examining_edges.len();
+    let random_edge_index = next_random_number() % examining_edge_num;
   }
+
+  // if x_init < x_bound {
+  //   examining_edges.push(maze.add_edge(current_cell_index,
+  //                                      maze_cell_indexes[y_init][x_init + 1],
+  //                                      Direction::Est)); // to the right cell
+  //   maze.add_edge(maze_cell_indexes[y_init][x_init + 1],
+  //                 current_cell_index,
+  //                 Direction::West); // backward edge
+  // }
+
+  // if y_init > 0 {
+  //   examining_edges.push(maze.add_edge(current_cell_index,
+  //                                      maze_cell_indexes[y_init - 1][x_init],
+  //                                      Direction::North)); // to the upper cell
+  //   maze.add_edge(maze_cell_indexes[y_init - 1][x_init],
+  //                 current_cell_index, Direction::South); // backward edge
+  // }
+
+  // if y_init < y_bound {
+  //   examining_edges.push(maze.add_edge(current_cell_index,
+  //                                      maze_cell_indexes[y_init + 1][x_init],
+  //                                      Direction::South));
+  // }
 
   maze
 }
