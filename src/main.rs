@@ -77,11 +77,12 @@ struct Cell {
   y: usize,
 }
 
+#[derive(Copy, Clone)]
 enum Direction {
-  North, // up
-  South, // down
-  Est,   // right
-  West,  // left
+  North = 0x0, // up
+  South = 0x1, // down
+  Est = 0x2,   // right
+  West = 0x3,  // left
 }
 
 fn draw(maze: &DiGraph<Cell, Direction>) {
@@ -254,75 +255,96 @@ fn generate_maze(background_grid: &DiGraph<Cell, Direction>) -> DiGraph<Cell, Di
 
   let x_init = next_random_number() % WIDTH;
   let y_init = next_random_number() % HEIGHT;
-  // let (x_bound, y_bound) = (WIDTH - 1, HEIGHT - 1);
-  // let mut examining_edges: Vec<EdgeIndex> = Vec::new();
-  let mut examining_edges = Vec::new();
+  let mut examining_walls = Vec::new();
 
-  let current_cell_index = maze_cell_indexes[y_init][x_init];
-  // if x_init > 0 {
-  //   examining_edges.push(maze.add_edge(current_cell_index,
-  //                                      maze_cell_indexes[y_init][x_init - 1],
-  //                                      Direction::West)); // to the left cell
-  //   maze.add_edge(maze_cell_indexes[y_init][x_init - 1],
-  //                 current_cell_index,
-  //                 Direction::Est); // backward edge (don't need to add in the vector)
-  // }
+  let init_cell_index = maze_cell_indexes[y_init][x_init];
+
+  struct Wall {
+    pub source: petgraph::graph::NodeIndex,
+    pub target: petgraph::graph::NodeIndex,
+    pub direction: [Direction; 2],
+  }
+
   match western_cell(x_init, y_init, &maze_cell_indexes) {
     Some(cell_index) => {
-      examining_edges.push(maze.add_edge(current_cell_index, cell_index, Direction::West));
-      maze.add_edge(cell_index, current_cell_index, Direction::Est);
+      // examining_walls.push(maze.add_edge(init_cell_index, cell_index, Direction::West));
+      // maze.add_edge(cell_index, init_cell_index, Direction::Est);
+      // let new_edge = petgraph::graph::Edge::<_> { weight: Direction::West,
+      //                                             node: [init_cell_index, cell_index],
+      //                                             next: [Default::default(), Default::default()] };
+      // let new_wall = Wall { source: init_cell_index,
+      //                       target: cell_index,
+      //                       direction: Direction::West };
+      examining_walls.push(Wall { source: init_cell_index, target: cell_index,
+                                  direction: [Direction::West, Direction::Est] });
     },
     None => (),
   }
 
   match eastern_cell(x_init, y_init, &maze_cell_indexes) {
     Some(cell_index) => {
-      examining_edges.push(maze.add_edge(current_cell_index, cell_index, Direction::Est));
-      maze.add_edge(cell_index, current_cell_index, Direction::West);
+      // examining_walls.push(maze.add_edge(init_cell_index, cell_index, Direction::Est));
+      // maze.add_edge(cell_index, init_cell_index, Direction::West);
+      examining_walls.push(Wall { source: init_cell_index, target: cell_index,
+                                  direction: [Direction::Est, Direction::West] });
     },
     None => (),
   }
 
   match northern_cell(x_init, y_init, &maze_cell_indexes) {
     Some(cell_index) => {
-      examining_edges.push(maze.add_edge(current_cell_index, cell_index, Direction::North));
-      maze.add_edge(cell_index, current_cell_index, Direction::South);
+      // examining_walls.push(maze.add_edge(init_cell_index, cell_index, Direction::North));
+      // maze.add_edge(cell_index, init_cell_index, Direction::South);
+      examining_walls.push(Wall { source: init_cell_index, target: cell_index,
+                                  direction: [Direction::North, Direction::South] });
     },
     None => (),
   }
 
   match southern_cell(x_init, y_init, &maze_cell_indexes) {
     Some(cell_index) => {
-      examining_edges.push(maze.add_edge(current_cell_index, cell_index, Direction::South));
-      maze.add_edge(cell_index, current_cell_index, Direction::North);
+      // examining_walls.push(maze.add_edge(init_cell_index, cell_index, Direction::South));
+      // maze.add_edge(cell_index, init_cell_index, Direction::North);
+      examining_walls.push(Wall { source: init_cell_index, target: cell_index,
+                                  direction: [Direction::South, Direction::North] });
     },
     None => (),
   }
 
-  while !examining_edges.is_empty() {
-    let examining_edge_num = examining_edges.len();
-    let random_edge_index = next_random_number() % examining_edge_num;
+  let mut examined_cells = Vec::new();
+  examined_cells.push(init_cell_index);
+
+  while !examining_walls.is_empty() {
+    // let examining_edge_num = examining_walls.len();
+    let random_wall_index = next_random_number() % examining_walls.len();
+    let examining_wall = examining_walls.get(random_wall_index).unwrap();
+    let target_cell = examining_wall.target;
+    // let direction = examining_wall.direction;
+    if !examined_cells.contains(&target_cell) {
+      maze.add_edge(examining_wall.source, examining_wall.target, examining_wall.direction[0]);
+      maze.add_edge(examining_wall.target, examining_wall.source, examining_wall.direction[1]);
+    }
   }
 
   // if x_init < x_bound {
-  //   examining_edges.push(maze.add_edge(current_cell_index,
+  //   examining_walls.push(maze.add_edge(init_cell_index,
   //                                      maze_cell_indexes[y_init][x_init + 1],
   //                                      Direction::Est)); // to the right cell
   //   maze.add_edge(maze_cell_indexes[y_init][x_init + 1],
-  //                 current_cell_index,
+  //                 init_cell_index,
   //                 Direction::West); // backward edge
   // }
 
   // if y_init > 0 {
-  //   examining_edges.push(maze.add_edge(current_cell_index,
+  //   examining_walls.push(maze.add_edge(init_cell_index,
   //                                      maze_cell_indexes[y_init - 1][x_init],
   //                                      Direction::North)); // to the upper cell
   //   maze.add_edge(maze_cell_indexes[y_init - 1][x_init],
-  //                 current_cell_index, Direction::South); // backward edge
+  //                 init_cell_index, Direction::South); // backward edge
   // }
 
   // if y_init < y_bound {
-  //   examining_edges.push(maze.add_edge(current_cell_index,
+  //   examining_walls.push(maze.add_edge(init_cell_index,
   //                                      maze_cell_indexes[y_init + 1][x_init],
   //                                      Direction::South));
   // }
