@@ -44,12 +44,13 @@ const HEIGHT: usize = 7;
 
 fn next_random_number() -> usize {
   let mut current_seed = *RANDOM_SEED.lock().unwrap();
-  if std::mem::size_of::<u32>() == std::mem::size_of::<usize>() {
+  let usize_length = std::mem::size_of::<usize>();
+  if std::mem::size_of::<u32>() == usize_length {
     current_seed ^= current_seed << 13;
     current_seed ^= current_seed >> 17;
     current_seed ^= current_seed << 5;
     *RANDOM_SEED.lock().unwrap() = current_seed as usize;
-  } else if std::mem::size_of::<u64>() == std::mem::size_of::<usize>() {
+  } else if std::mem::size_of::<u64>() == usize_length {
     current_seed ^= current_seed << 13;
     current_seed ^= current_seed >> 47;
     current_seed ^= current_seed << 23;
