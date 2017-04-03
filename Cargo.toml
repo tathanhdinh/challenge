@@ -12,3 +12,6 @@ petgraph = "*"
 [profile.release]
 lto = true
 panic = 'abort'
+# relocation-model = pic
+# opt-level = '3'
+# code-model = 'small'
