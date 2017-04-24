@@ -4,6 +4,7 @@
 extern crate lazy_static;
 extern crate nix;
 extern crate petgraph;
+// extern crate nadeko;
 
 use nix::*;
 use std::sync::*;
@@ -174,25 +175,35 @@ fn draw(maze: &DiGraph<Cell, Direction>) {
 
 //   full_grid
 // }
+fn select_generic<T: Copy>(select: bool, value_for_true: T, value_for_false: T) -> T {
+  let values = [value_for_false, value_for_true];
+  let flag = unsafe { std::mem::transmute::<bool, u8>(select) } as usize;
+  values[flag].clone()
+}
 
 // on the left
 fn western_cell(x: usize, y: usize,
-             cell_matrix: &[[NodeIndex; WIDTH]; HEIGHT]) -> Option<NodeIndex> {
-  if x > 0 {
-    Some(cell_matrix[y][x - 1])
-  } else {
-    None
-  }
+                cell_matrix: &[[NodeIndex; WIDTH]; HEIGHT]) -> Option<NodeIndex> {
+  select_generic::<Option<NodeIndex>>(x > 0, Some(cell_matrix[y][x - 1]), None)
+  // let values = [None, Some(cell_matrix[y][x - 1])];
+  // let flag = unsafe { std::mem::transmute::<bool, u8>(x > 0) } as usize;
+  // values[flag]
+  // if x > 0 {
+  //   Some(cell_matrix[y][x - 1])
+  // } else {
+  //   None
+  // }
 }
 
 // on the right
 fn eastern_cell(x: usize, y: usize,
                 cell_matrix: &[[NodeIndex; WIDTH]; HEIGHT]) -> Option<NodeIndex> {
-  if x < WIDTH - 1 {
-    Some(cell_matrix[y][x + 1])
-  } else {
-    None
-  }
+  // if x < WIDTH - 1 {
+  //   Some(cell_matrix[y][x + 1])
+  // } else {
+  //   None
+  // }
+  select_generic::<Option<NodeIndex>>(x < WIDTH - 1, Some(cell_matrix[y][x + 1]), None)
 }
 
 // upper

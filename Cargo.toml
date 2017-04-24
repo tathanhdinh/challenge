@@ -8,6 +8,7 @@ nix = "*"
 # rand = "*"
 lazy_static = "*"
 petgraph = "*"
+# nadeko = { git = "https://github.com/klutzy/nadeko.git", version = "*" }
 
 [profile.release]
 lto = true
