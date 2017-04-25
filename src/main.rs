@@ -5,6 +5,8 @@ extern crate lazy_static;
 extern crate nix;
 extern crate petgraph;
 // extern crate nadeko;
+// extern crate lazy;
+// extern crate lazy_init;
 
 use nix::*;
 use std::sync::*;
@@ -175,35 +177,42 @@ fn draw(maze: &DiGraph<Cell, Direction>) {
 
 //   full_grid
 // }
-fn select_generic<T: Copy>(select: bool, value_for_true: T, value_for_false: T) -> T {
-  let values = [value_for_false, value_for_true];
-  let flag = unsafe { std::mem::transmute::<bool, u8>(select) } as usize;
-  values[flag].clone()
-}
+// fn select_generic<'a, T>(select: bool, value_for_true: &'a T, value_for_false: &'a T) -> &'a T {
+//   let values = [value_for_false, value_for_true];
+//   // let flag = unsafe { std::mem::transmute::<bool, u8>(select) } as usize;
+//   // let flag = if select {1} else {0} as usize;
+//   let flag = select as usize;
+//   // values[flag].clone()
+//   values[flag]
+// }
 
 // on the left
 fn western_cell(x: usize, y: usize,
                 cell_matrix: &[[NodeIndex; WIDTH]; HEIGHT]) -> Option<NodeIndex> {
-  select_generic::<Option<NodeIndex>>(x > 0, Some(cell_matrix[y][x - 1]), None)
+  // select_generic::<Option<NodeIndex>>(x > 0, Some(cell_matrix[y][x - 1]), None)
   // let values = [None, Some(cell_matrix[y][x - 1])];
   // let flag = unsafe { std::mem::transmute::<bool, u8>(x > 0) } as usize;
   // values[flag]
-  // if x > 0 {
-  //   Some(cell_matrix[y][x - 1])
-  // } else {
-  //   None
-  // }
+  if x > 0 {
+    Some(cell_matrix[y][x - 1])
+  } else {
+    None
+  }
+  // let dec = |x: usize| { x - 1 };
+  // let lazy_value_for_true: Box<Fn() -> Option<NodeIndex>> = Box::new(|| { Some(cell_matrix[y][x - 1]) });
+  // let lazy_value_for_false: Box<Fn() -> Option<NodeIndex>> = Box::new(||  None);
+  // select_generic::<_>(x > 0, &lazy_value_for_false, &lazy_value_for_true)()
 }
 
 // on the right
 fn eastern_cell(x: usize, y: usize,
                 cell_matrix: &[[NodeIndex; WIDTH]; HEIGHT]) -> Option<NodeIndex> {
-  // if x < WIDTH - 1 {
-  //   Some(cell_matrix[y][x + 1])
-  // } else {
-  //   None
-  // }
-  select_generic::<Option<NodeIndex>>(x < WIDTH - 1, Some(cell_matrix[y][x + 1]), None)
+  if x < WIDTH - 1 {
+    Some(cell_matrix[y][x + 1])
+  } else {
+    None
+  }
+  // select_generic::<Option<NodeIndex>>(x < WIDTH - 1, Some(cell_matrix[y][x + 1]), None)
 }
 
 // upper
