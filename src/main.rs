@@ -2,18 +2,31 @@
 // extern crate alloc_system;
 #[macro_use]
 extern crate lazy_static;
-extern crate nix;
 extern crate petgraph;
 // extern crate nadeko;
 // extern crate lazy;
 // extern crate lazy_init;
 
-use nix::*;
+#[cfg(target_os="linux")] extern crate nix;
+
+#[cfg(target_os="windows")] extern crate winapi;
+#[cfg(target_os="windows")] extern crate kernel32;
+
+// use nix::*;
 use std::sync::*;
 use petgraph::graph::*;
 
+#[cfg(target_os="linux")]
 lazy_static! {
-    static ref RANDOM_SEED: Mutex<usize> = Mutex::new(unistd::getpid() as usize);
+    static ref RANDOM_SEED: Mutex<usize> = Mutex::new(nix::unistd::getpid() as usize);
+}
+
+#[cfg(target_os="windows")]
+lazy_static! {
+    // let pid = unsafe {
+    //     winapi::kernel32::GetCurrentProcessId()
+    // };
+    static ref RANDOM_SEED: Mutex<usize> = Mutex::new(unsafe { kernel32::GetCurrentProcessId() } as usize);
 }
 
 const WIDTH: usize = 20;
@@ -45,25 +58,60 @@ const HEIGHT: usize = 7;
 //   }
 // }
 
+#[cfg(any(target_arch="x86", target_pointer_width="32"))]
 fn next_random_number() -> usize {
     let mut current_seed = *RANDOM_SEED.lock().unwrap();
-    let usize_length = std::mem::size_of::<usize>();
-    if std::mem::size_of::<u32>() == usize_length {
-        current_seed ^= current_seed << 13;
-        current_seed ^= current_seed >> 17;
-        current_seed ^= current_seed << 5;
-        *RANDOM_SEED.lock().unwrap() = current_seed as usize;
-    } else if std::mem::size_of::<u64>() == usize_length {
-        current_seed ^= current_seed << 13;
-        current_seed ^= current_seed >> 47;
-        current_seed ^= current_seed << 23;
-    } else {
-        unreachable!();
-    }
+
+    current_seed ^= current_seed << 13;
+    current_seed ^= current_seed >> 17;
+    current_seed ^= current_seed << 5;
 
     *RANDOM_SEED.lock().unwrap() = current_seed;
     current_seed
 }
+
+#[cfg(any(target_arch="x86_64", target_pointer_width="64"))]
+fn next_random_number() -> usize {
+    let mut current_seed = *RANDOM_SEED.lock().unwrap();
+
+    current_seed ^= current_seed << 13;
+    current_seed ^= current_seed >> 47;
+    current_seed ^= current_seed << 23;
+
+    *RANDOM_SEED.lock().unwrap() = current_seed;
+    current_seed
+}
+
+// fn next_random_number() -> usize {
+//     let mut current_seed = *RANDOM_SEED.lock().unwrap();
+//     // let usize_length = std::mem::size_of::<usize>();
+//     // if std::mem::size_of::<u32>() == usize_length {
+//     //     current_seed ^= current_seed << 13;
+//     //     current_seed ^= current_seed >> 17;
+//     //     current_seed ^= current_seed << 5;
+//     //     *RANDOM_SEED.lock().unwrap() = current_seed as usize;
+//     // } else if std::mem::size_of::<u64>() == usize_length {
+//     //     current_seed ^= current_seed << 13;
+//     //     current_seed ^= current_seed >> 47;
+//     //     current_seed ^= current_seed << 23;
+//     // } else {
+//     //     unreachable!();
+//     // }
+
+//     if cfg!(any(target_arch="x86_64", target_pointer_width="64")) {
+//         current_seed ^= current_seed << 13;
+//         current_seed ^= current_seed >> 17;
+//         current_seed ^= current_seed << 5;
+//     } else if cfg!(any(target_arch="x86_64", target_pointer_width="64")) {
+//         current_seed ^= current_seed << 13;
+//         current_seed ^= current_seed >> 47;
+//         current_seed ^= current_seed << 23;
+//     } else {
+//         unreachable!();
+//     }
+//     *RANDOM_SEED.lock().unwrap() = current_seed;
+//     current_seed
+// }
 
 struct Cell {
     pub x: usize,

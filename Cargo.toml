@@ -8,6 +8,8 @@ nix = "*"
 # rand = "*"
 lazy_static = "*"
 petgraph = "*"
+winapi = "*"
+kernel32-sys = "*"
 # nadeko = { git = "https://github.com/klutzy/nadeko.git", version = "*" }
 # lazy = { git = "https://github.com/reem/rust-lazy.git", version = "*"}
 # lazy-init = "*"
